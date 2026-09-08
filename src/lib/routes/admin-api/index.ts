@@ -21,6 +21,7 @@ import UserFeedbackController from './user-feedback.js';
 import UserSplashController from './user-splash.js';
 import ProjectController from '../../features/project/project-controller.js';
 import { EnvironmentsController } from '../../features/environments/environments-controller.js';
+import { MultiProjectController } from '../../features/multi-project/multi-project-controller.js';
 import ConstraintsController from '../../features/constraints/constraints-controller.js';
 import PatController from './user/pat.js';
 import { PublicSignupController } from './public-signup.js';
@@ -120,6 +121,19 @@ export class AdminApi extends Controller {
             '/feedback',
             new UserFeedbackController(config, services).router,
         );
+        if (
+            config.ui.environment?.toLowerCase() === 'pro' &&
+            !config.isEnterprise
+        ) {
+            // UNLEASH_MULTI_PROJECT mode (pro-shaped config, see
+            // multiProjectFromEnv): project/environment routes that upstream
+            // only ships in the enterprise package. Mounted before
+            // ProjectController so its GET /projects takes precedence.
+            this.app.use(
+                '/',
+                new MultiProjectController(config, services, stores).router,
+            );
+        }
         this.app.use(
             '/projects',
             new ProjectController(config, services, db).router,

@@ -1,13 +1,22 @@
+// Loads ./.env when present; existing process env always wins (dotenv never overrides).
+import 'dotenv/config';
 import { start } from './lib/server-impl.js';
 import { createConfig } from './lib/create-config.js';
 import { LogLevel } from './lib/logger.js';
 import { ApiTokenType } from './lib/types/model.js';
+import { larkAuthenticationFromEnv } from './lib/middleware/lark-authentication.js';
+import {
+    multiProjectFlags,
+    multiProjectFromEnv,
+} from './lib/util/multi-project-from-env.js';
 
 // local server configuraion for development purposes.
 process.nextTick(async () => {
     try {
         await start(
             createConfig({
+                // UNLEASH_MULTI_PROJECT=true lifts the OSS single-project gate.
+                ...multiProjectFromEnv(),
                 db: process.env.DATABASE_URL
                     ? undefined
                     : {
@@ -37,6 +46,7 @@ process.nextTick(async () => {
                 experimental: {
                     // externalResolver: unleash,
                     flags: {
+                        ...multiProjectFlags(),
                         anonymiseEventLog: false,
                         responseTimeWithAppNameKillSwitch: false,
                         outdatedSdksBanner: true,
@@ -70,6 +80,8 @@ process.nextTick(async () => {
                     },
                 },
                 authentication: {
+                    // Opt in to Lark login by exporting LARK_AUTH_* (see LARK_AUTH.md).
+                    ...larkAuthenticationFromEnv(),
                     initApiTokens: [
                         {
                             environment: '*',
